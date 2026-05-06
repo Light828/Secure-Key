@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: spring-server
+  profiles:
+    active: dev
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASS:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
+
+app:
+  jwt-secret: ${JWT_SECRET:change-this-secret}
+  jwt-issuer: locksmith-platform
+  jwt-expiration-hours: 168
+  notification-from: ${SMTP_FROM:no-reply@securekey.local}
+  frontend-url: ${CLIENT_URL:http://localhost:8081}
+
+stripe:
+  api-key: ${STRIPE_API_KEY:}
+  public-key: ${STRIPE_PUBLIC_KEY:}
+
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID:}
+  client-secret: ${PAYPAL_CLIENT_SECRET:}
+  base-url: ${PAYPAL_BASE_URL:https://api-m.sandbox.paypal.com}
+  currency: ${PAYPAL_CURRENCY:ZAR}
+
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+
+store:
+  latitude: ${STORE_LATITUDE:-25.87}
+  longitude: ${STORE_LONGITUDE:29.2}
