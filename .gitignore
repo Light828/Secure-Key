@@ -34,6 +34,7 @@ dist-ssr
 # Local toolchains and build artifacts
 tools/
 spring-server/target/
+spring-server/.mvn-build/
 
 # Environment files
 .env

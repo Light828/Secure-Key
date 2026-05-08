@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Car, Home, Shield, Key, Wrench, Lock, Phone, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import commercialAccessControl from "@/assets/commercial-access-control.jpg";
 
 export const Route = createFileRoute("/services")({
   component: ServicesPage,
@@ -40,6 +41,8 @@ const services = [
   {
     icon: Shield,
     title: "Commercial Locksmith",
+    image: commercialAccessControl,
+    description: "Full access control system installation for an office park in Witbank — card readers, electric strikes, and central management software.",
     items: [
       "Master key systems",
       "Access control installation",
@@ -110,20 +113,40 @@ function ServicesPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.05 }}
-                className="p-6 bg-card rounded-xl border border-border hover:border-primary/40 transition-all hover:shadow-gold"
+                className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-gold"
               >
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <s.icon className="h-6 w-6 text-primary" />
+                {s.image && (
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={s.image}
+                      alt="Commercial access control installation"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute left-4 bottom-4 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white backdrop-blur-sm">
+                      Office park security
+                    </div>
+                  </div>
+                )}
+                <div className="p-6">
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                    <s.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">{s.title}</h2>
+                  {s.description && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {s.description}
+                    </p>
+                  )}
+                  <ul className="mt-4 space-y-2">
+                    {s.items.map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <h2 className="text-xl font-bold text-foreground">{s.title}</h2>
-                <ul className="mt-4 space-y-2">
-                  {s.items.map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
               </motion.div>
             ))}
           </div>
