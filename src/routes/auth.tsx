@@ -242,7 +242,7 @@ function AuthPage() {
                   </div>
                 </div>
 
-                <div className="p-6 sm:p-8">
+                <div className="p-6 sm:p-8 bg-transparent text-white">
                   {mode !== "forgot" && mode !== "reset" && (
                     <div className="mb-6 flex rounded-lg bg-muted p-1 text-sm">
                       <button
@@ -260,7 +260,7 @@ function AuthPage() {
                     </div>
                   )}
 
-                  <h1 className="text-2xl font-bold text-foreground">
+                  <h1 className="text-2xl font-bold text-white">
                     {mode === "login"
                       ? "Welcome back"
                       : mode === "register"
@@ -269,7 +269,7 @@ function AuthPage() {
                           ? "Reset your password"
                           : "Enter your reset code"}
                   </h1>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 text-sm text-white/85">
                     {mode === "login"
                       ? "Login to access your dashboard."
                       : mode === "register"
@@ -287,7 +287,7 @@ function AuthPage() {
                           value={name}
                           onChange={(e) => setName(e.target.value)}
                           placeholder="Full name"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <input
                           required
@@ -295,7 +295,7 @@ function AuthPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="Email address"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <input
                           required
@@ -303,7 +303,7 @@ function AuthPage() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="Password"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <input
                           required
@@ -311,40 +311,40 @@ function AuthPage() {
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           placeholder="Confirm password"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <input
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="Phone number"
                           type="tel"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <input
                           value={addressLine}
                           onChange={(e) => setAddressLine(e.target.value)}
                           placeholder="Street address"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <div className="grid grid-cols-2 gap-3">
                           <input
                             value={city}
                             onChange={(e) => setCity(e.target.value)}
                             placeholder="City"
-                            className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                            className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                           />
                           <input
                             value={province}
                             onChange={(e) => setProvince(e.target.value)}
                             placeholder="Province"
-                            className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                            className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                           />
                         </div>
                         <input
                           value={postalCode}
                           onChange={(e) => setPostalCode(e.target.value)}
                           placeholder="Postal code"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <div className="flex items-center space-x-2">
                           <input
@@ -353,7 +353,7 @@ function AuthPage() {
                             id="terms"
                             checked={acceptTerms}
                             onChange={(e) => setAcceptTerms(e.target.checked)}
-                            className="h-4 w-4 rounded border-border"
+                            className="h-4 w-4 rounded border-white/30 bg-white/6"
                           />
                           <label htmlFor="terms" className="text-xs text-muted-foreground">
                             I agree to the terms and conditions
@@ -369,7 +369,7 @@ function AuthPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Email"
-                        className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                        className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                       />
                     )}
 
@@ -381,7 +381,7 @@ function AuthPage() {
                           onChange={(e) => setResetCode(e.target.value)}
                           placeholder="6-digit verification code"
                           maxLength={6}
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                       </>
                     )}
@@ -394,7 +394,7 @@ function AuthPage() {
                           onChange={(e) => setResetCode(e.target.value)}
                           placeholder="6-digit code from email"
                           maxLength={6}
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                         <input
                           required
@@ -402,7 +402,7 @@ function AuthPage() {
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder="New password"
-                          className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
                       </>
                     )}
@@ -414,14 +414,14 @@ function AuthPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password"
-                        className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm"
+                        className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                       />
                     )}
 
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+                      className="w-full rounded-md bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 hover:shadow-lg transition-all"
                     >
                       {loading
                         ? "Please wait..."

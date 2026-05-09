@@ -3,7 +3,12 @@ import { motion } from "framer-motion";
 import { Car, Home, Shield, Key, Wrench, Lock, Phone, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import automotiveLocksmith from "@/assets/automotive-locksmith.jpg";
+import residentialLocksmith from "@/assets/residential-locksmith.jpg";
 import commercialAccessControl from "@/assets/commercial-access-control.jpg";
+import keyCutting from "@/assets/key-cutting.jpg";
+import safeServices from "@/assets/safe-services.jpg";
+import emergencyServices from "@/assets/emergency-services.jpg";
 
 export const Route = createFileRoute("/services")({
   component: ServicesPage,
@@ -19,6 +24,8 @@ const services = [
   {
     icon: Car,
     title: "Automotive Locksmith",
+    image: automotiveLocksmith,
+    imageLabel: "Vehicle lockout support",
     items: [
       "Car & truck lockouts",
       "Transponder key programming",
@@ -30,6 +37,8 @@ const services = [
   {
     icon: Home,
     title: "Residential Locksmith",
+    image: residentialLocksmith,
+    imageLabel: "Home security service",
     items: [
       "House lockouts",
       "Lock changes & rekeying",
@@ -42,6 +51,7 @@ const services = [
     icon: Shield,
     title: "Commercial Locksmith",
     image: commercialAccessControl,
+    imageLabel: "Office park security",
     description: "Full access control system installation for an office park in Witbank — card readers, electric strikes, and central management software.",
     items: [
       "Master key systems",
@@ -54,6 +64,8 @@ const services = [
   {
     icon: Key,
     title: "Key Cutting",
+    image: keyCutting,
+    imageLabel: "Precision key cutting",
     items: [
       "Standard & security keys",
       "Dimple & tubular keys",
@@ -65,6 +77,8 @@ const services = [
   {
     icon: Lock,
     title: "Safe Services",
+    image: safeServices,
+    imageLabel: "Safe opening support",
     items: [
       "Safe opening & cracking",
       "Combination changes",
@@ -76,6 +90,8 @@ const services = [
   {
     icon: Wrench,
     title: "Emergency 24/7",
+    image: emergencyServices,
+    imageLabel: "24/7 rapid response",
     items: [
       "After-hours lockouts",
       "Break-in damage repair",
@@ -119,12 +135,12 @@ function ServicesPage() {
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={s.image}
-                      alt="Commercial access control installation"
+                      alt={s.imageLabel || s.title}
                       className="h-full w-full object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute left-4 bottom-4 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white backdrop-blur-sm">
-                      Office park security
+                      {s.imageLabel}
                     </div>
                   </div>
                 )}

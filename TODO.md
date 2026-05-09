@@ -1,10 +1,11 @@
-# Fix CartPage Stripe Error
+# TODO
 
-**Current Progress:** Complete - ReferenceError fixed in CartPage.
+## Auth API route alignment fix
+- [x] Update `AuthController` base mapping to `@RequestMapping("/api/auth")`
 
-## Steps:
-- [x] Step 1: Add missing `useState` for isRedirectingToStripe in src/routes/cart.tsx
-- [x] Step 2: Remove unused Stripe imports from src/routes/cart.tsx
-- [x] Step 3: Update TODO.md with completion status
-- [x] Step 4: Test /cart route and verify no ReferenceError
+- [x] Ensure `SecurityConfig` permit rules align with new route (matches `/api/auth/**`)
+
+
+- [ ] Run quick verification calls to `/api/auth/register` and `/api/auth/login`
+- [ ] If register still returns 500, inspect backend exception details and DB constraints
 

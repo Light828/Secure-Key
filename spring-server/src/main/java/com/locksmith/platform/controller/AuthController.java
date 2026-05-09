@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
@@ -100,20 +100,26 @@ public class AuthController {
     }
 
     public record RegisterRequest(@NotBlank String name, @Email String email, @NotBlank String password) {
+
     }
 
     public record VerifyRequest(@NotBlank String token) {
+
     }
 
     public record LoginRequest(@Email String email, @NotBlank String password) {
+
     }
 
     public record ForgotPasswordRequest(@Email String email) {
+
     }
 
     public record ResetPasswordRequest(@NotBlank String code, @NotBlank String newPassword) {
+
     }
 
     public record CreateAdminRequest(@NotBlank String name, @Email String email, @NotBlank String password) {
+
     }
 }
