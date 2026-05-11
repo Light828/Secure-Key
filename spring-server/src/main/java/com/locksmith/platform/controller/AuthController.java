@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.locksmith.platform.model.User;
 import com.locksmith.platform.service.AuthService;
 
@@ -102,7 +103,16 @@ public class AuthController {
         }
     }
 
-    public record RegisterRequest(@NotBlank String name, @Email String email, @NotBlank String password) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record RegisterRequest(
+            @NotBlank String name,
+            @Email String email,
+            @NotBlank String password,
+            String phone,
+            String addressLine,
+            String city,
+            String postalCode,
+            String province) {
 
     }
 

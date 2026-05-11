@@ -1,14 +1,15 @@
 package com.locksmith.platform.controller;
 
-import com.locksmith.platform.model.Product;
-import com.locksmith.platform.repository.ProductRepository;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.locksmith.platform.repository.ProductRepository;
 
 @RestController
 @RequestMapping("/products")

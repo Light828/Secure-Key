@@ -29,6 +29,10 @@ google:
   maps:
     api-key: "AIzaSyCJRnC2wZxTw_epmSEQB-Rb37zl_e6NovU"
 
+stripe:
+  api-key: "sk_test_51TR7BOFUykCqhBTXycC69IPu35nRCgqwzNPsP4OZuOXzUC5LoMZdfscCpenp\
+    Tl5Z4nzINX0nl4DMJMUve0bsVhwv00albEOcwB"
+
 management:
   health:
     mail:

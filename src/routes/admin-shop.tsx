@@ -393,7 +393,7 @@ function AdminShopPage() {
                       {orders.map((order) => (
                         <tr key={order.id} className="border-b border-border/50">
                           <td className="px-3 py-2">{order.orderNumber || `#${order.id}`} ({getChargeText(order.total, order.currency)})</td>
-                          <td className="px-3 py-2">{order.customer_name}<br /><span className="text-xs text-muted-foreground">{order.customer_email}</span></td>
+                          <td className="px-3 py-2">{order.customerName || order.customer_name || 'Customer'}<br /><span className="text-xs text-muted-foreground">{order.customerEmail || order.customer_email || ''}</span></td>
                           <td className="px-3 py-2">{formatPaymentStatus(order.payment_status)}</td>
                           <td className="px-3 py-2">{formatProcessingStatus(order.processing_status)}</td>
                           <td className="px-3 py-2">
@@ -491,7 +491,7 @@ function AdminShopPage() {
               <SheetHeader>
                 <SheetTitle>Order #{activeOrder.id}</SheetTitle>
                 <SheetDescription>
-                  {activeOrder.customer_name} · {activeOrder.customer_email}
+                  {activeOrder.customerName || activeOrder.customer_name || 'Customer'} · {activeOrder.customerEmail || activeOrder.customer_email || ''}
                 </SheetDescription>
               </SheetHeader>
 

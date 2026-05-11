@@ -36,7 +36,75 @@ function AuthPage() {
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
+
+  const validateEmail = (value: string) => {
+    if (!value) return "Email is required";
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "" : "Enter a valid email address";
+  };
+
+  const validatePassword = (value: string) => {
+    if (!value) return "Password is required";
+    if (value.length < 8) return "Use at least 8 characters";
+    if (!/[A-Z]/.test(value)) return "Add at least one uppercase letter";
+    if (!/[a-z]/.test(value)) return "Add at least one lowercase letter";
+    if (!/[0-9]/.test(value)) return "Add at least one number";
+    return "";
+  };
+
+  const validatePhone = (value: string) => {
+    if (!value) return "";
+    const digits = value.replace(/\D/g, "");
+    if (!/^[0-9+\-()\s]+$/.test(value)) return "Phone number can only contain numbers and symbols";
+    return digits.length >= 10 ? "" : "Phone number must be at least 10 digits";
+  };
+
+  const validatePostalCode = (value: string) => {
+    if (!value) return "";
+    return /^[0-9]+$/.test(value) ? "" : "Postal code must contain only numbers";
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setErrors((current) => ({ ...current, email: validateEmail(value) }));
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setErrors((current) => ({ ...current, password: validatePassword(value) }));
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    setErrors((current) => ({ ...current, phone: validatePhone(value) }));
+  };
+
+  const handlePostalCodeChange = (value: string) => {
+    setPostalCode(value);
+    setErrors((current) => ({ ...current, postalCode: validatePostalCode(value) }));
+  };
+
+  const isFormValid = () => {
+    if (mode === "login") {
+      return !validateEmail(email) && !validatePassword(password);
+    }
+    if (mode === "register") {
+      return (
+        name.trim() !== "" &&
+        !validateEmail(email) &&
+        !validatePassword(password) &&
+        password === confirmPassword &&
+        !validatePhone(phone) &&
+        !validatePostalCode(postalCode) &&
+        acceptTerms
+      );
+    }
+    if (mode === "forgot") {
+      return !validateEmail(email);
+    }
+    return true;
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -63,7 +131,7 @@ function AuthPage() {
         if (password.length < 8) {
           throw new Error("Password must be at least 8 characters long");
         }
-        const res = await register({ name, email, password, phone, addressLine, city });
+        const res = await register({ name, email, password, phone, addressLine, city, province });
         setMessage(res.message + " Check your email for the 6-digit verification code.");
         setMode("verify");
       } else if (mode === "forgot") {
@@ -117,6 +185,18 @@ function AuthPage() {
     }
   };
 
+  const submitLabel = loading
+    ? "Please wait..."
+    : mode === "login"
+      ? "Login"
+      : mode === "register"
+        ? "Create account"
+        : mode === "forgot"
+          ? "Send reset code"
+          : mode === "reset"
+            ? "Reset password"
+            : "Verify account";
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -124,7 +204,7 @@ function AuthPage() {
         <section className="mx-auto max-w-xl px-4 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-xl border border-border bg-card">
             {isAuthenticated ? (
-              <div className="p-6 sm:p-8">
+              <div suppressHydrationWarning className="p-6 sm:p-8">
                 <div className="mb-8">
                   <h1 className="text-3xl font-bold text-foreground">My Profile</h1>
                   <p className="mt-2 text-sm text-muted-foreground">
@@ -215,34 +295,8 @@ function AuthPage() {
                 </form>
               </div>
             ) : (
-              <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
-                <div className="relative min-h-[260px] border-b border-border lg:min-h-full lg:border-b-0 lg:border-r">
-                  <img
-                    src={heroImg}
-                    alt="Professional locksmith working on a residential door"
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-br from-black/75 via-black/55 to-black/35" />
-                  <div className="relative z-10 flex h-full flex-col justify-end p-6 sm:p-8 text-white">
-                    <div className="mb-4 inline-flex w-fit items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.3em] text-white/80 backdrop-blur-sm">
-                      Residential locksmith
-                    </div>
-                    <h2 className="max-w-sm text-3xl font-black uppercase leading-none tracking-tight sm:text-4xl">
-                      Secure your home with fast local service.
-                    </h2>
-                    <p className="mt-4 max-w-md text-sm text-white/80">
-                      Lock changes, rekeying, deadbolt installation, gate motor support, and emergency lockouts handled by experienced technicians.
-                    </p>
-                    <div className="mt-6 grid gap-2 text-sm text-white/90 sm:grid-cols-2">
-                      <div className="rounded-lg border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm">House lockouts</div>
-                      <div className="rounded-lg border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm">Lock changes &amp; rekeying</div>
-                      <div className="rounded-lg border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm">Deadbolt installation</div>
-                      <div className="rounded-lg border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm">Window lock fitting</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 sm:p-8 bg-transparent text-white">
+              <div className="bg-transparent text-white">
+                <div className="p-6 sm:p-8">
                   {mode !== "forgot" && mode !== "reset" && (
                     <div className="mb-6 flex rounded-lg bg-muted p-1 text-sm">
                       <button
@@ -289,22 +343,28 @@ function AuthPage() {
                           placeholder="Full name"
                           className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
-                        <input
-                          required
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Email address"
-                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                        />
-                        <input
-                          required
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="Password"
-                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                        />
+                        <div>
+                          <input
+                            required
+                            type="email"
+                            value={email}
+                            onChange={(e) => handleEmailChange(e.target.value)}
+                            placeholder="Email address"
+                            className={`w-full rounded-md border bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70 ${errors.email ? "border-red-500" : "border-white/20"}`}
+                          />
+                          {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
+                        </div>
+                        <div>
+                          <input
+                            required
+                            type="password"
+                            value={password}
+                            onChange={(e) => handlePasswordChange(e.target.value)}
+                            placeholder="Password"
+                            className={`w-full rounded-md border bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70 ${errors.password ? "border-red-500" : "border-white/20"}`}
+                          />
+                          {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password}</p>}
+                        </div>
                         <input
                           required
                           type="password"
@@ -313,13 +373,16 @@ function AuthPage() {
                           placeholder="Confirm password"
                           className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                         />
-                        <input
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          placeholder="Phone number"
-                          type="tel"
-                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                        />
+                        <div>
+                          <input
+                            value={phone}
+                            onChange={(e) => handlePhoneChange(e.target.value)}
+                            placeholder="Phone number"
+                            type="tel"
+                            className={`w-full rounded-md border bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70 ${errors.phone ? "border-red-500" : "border-white/20"}`}
+                          />
+                          {errors.phone && <p className="mt-1 text-xs text-red-400">{errors.phone}</p>}
+                        </div>
                         <input
                           value={addressLine}
                           onChange={(e) => setAddressLine(e.target.value)}
@@ -333,19 +396,34 @@ function AuthPage() {
                             placeholder="City"
                             className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
                           />
-                          <input
+                          <select
                             value={province}
                             onChange={(e) => setProvince(e.target.value)}
-                            placeholder="Province"
                             className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                          />
+                          >
+                            <option value="" className="bg-slate-900 text-white">
+                              Select province
+                            </option>
+                            <option value="Eastern Cape" className="bg-slate-900 text-white">Eastern Cape</option>
+                            <option value="Free State" className="bg-slate-900 text-white">Free State</option>
+                            <option value="Gauteng" className="bg-slate-900 text-white">Gauteng</option>
+                            <option value="KwaZulu-Natal" className="bg-slate-900 text-white">KwaZulu-Natal</option>
+                            <option value="Limpopo" className="bg-slate-900 text-white">Limpopo</option>
+                            <option value="Mpumalanga" className="bg-slate-900 text-white">Mpumalanga</option>
+                            <option value="North West" className="bg-slate-900 text-white">North West</option>
+                            <option value="Northern Cape" className="bg-slate-900 text-white">Northern Cape</option>
+                            <option value="Western Cape" className="bg-slate-900 text-white">Western Cape</option>
+                          </select>
                         </div>
-                        <input
-                          value={postalCode}
-                          onChange={(e) => setPostalCode(e.target.value)}
-                          placeholder="Postal code"
-                          className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                        />
+                        <div>
+                          <input
+                            value={postalCode}
+                            onChange={(e) => handlePostalCodeChange(e.target.value)}
+                            placeholder="Postal code"
+                            className={`w-full rounded-md border bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70 ${errors.postalCode ? "border-red-500" : "border-white/20"}`}
+                          />
+                          {errors.postalCode && <p className="mt-1 text-xs text-red-400">{errors.postalCode}</p>}
+                        </div>
                         <div className="flex items-center space-x-2">
                           <input
                             required
@@ -363,14 +441,17 @@ function AuthPage() {
                     )}
 
                     {(mode === "login" || mode === "forgot") && (
-                      <input
-                        required
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Email"
-                        className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                      />
+                      <div>
+                        <input
+                          required
+                          type="email"
+                          value={email}
+                          onChange={(e) => handleEmailChange(e.target.value)}
+                          placeholder="Email"
+                          className={`w-full rounded-md border bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70 ${errors.email ? "border-red-500" : "border-white/20"}`}
+                        />
+                        {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email}</p>}
+                      </div>
                     )}
 
                     {mode === "verify" && (
@@ -408,53 +489,46 @@ function AuthPage() {
                     )}
 
                     {mode === "login" && (
-                      <input
-                        required
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Password"
-                        className="w-full rounded-md border border-white/20 bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70"
-                      />
+                      <div>
+                        <input
+                          required
+                          type="password"
+                          value={password}
+                          onChange={(e) => handlePasswordChange(e.target.value)}
+                          placeholder="Password"
+                          className={`w-full rounded-md border bg-white/8 px-3 py-2 text-sm text-white placeholder-white/70 ${errors.password ? "border-red-500" : "border-white/20"}`}
+                        />
+                        {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password}</p>}
+                      </div>
                     )}
 
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || !isFormValid()}
                       className="w-full rounded-md bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60 hover:shadow-lg transition-all"
                     >
-                      {loading
-                        ? "Please wait..."
-                        : mode === "login"
-                          ? "Login"
-                          : mode === "register"
-                            ? "Create account"
-                            : mode === "forgot"
-                              ? "Send reset code"
-                              : mode === "reset"
-                                ? "Reset password"
-                                : "Verify account"}
+                      {submitLabel}
                     </button>
                   </form>
-
-                  {mode === "login" && (
-                    <button
-                      onClick={() => setMode("forgot")}
-                      className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-primary"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
-
-                  {(mode === "forgot" || mode === "reset") && (
-                    <button
-                      onClick={() => setMode("login")}
-                      className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-primary"
-                    >
-                      Back to login
-                    </button>
-                  )}
                 </div>
+
+                {mode === "login" && (
+                  <button
+                    onClick={() => setMode("forgot")}
+                    className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+
+                {(mode === "forgot" || mode === "reset") && (
+                  <button
+                    onClick={() => setMode("login")}
+                    className="mt-4 w-full text-center text-sm text-muted-foreground hover:text-primary"
+                  >
+                    Back to login
+                  </button>
+                )}
               </div>
             )}
 

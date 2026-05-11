@@ -66,9 +66,11 @@ public class OrderService {
     public PayPalService.PayPalOrder createPaypalOrder(String authorizationHeader) {
         JwtService.JwtPrincipal principal = jwtService.requirePrincipal(authorizationHeader);
         Long userId = principal.userId();
-        if (userId == null) throw new IllegalArgumentException("Invalid token: missing user id");
+        if (userId == null) {
+            throw new IllegalArgumentException("Invalid token: missing user id");
+        }
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<CartItemEntity> cartItems = cartService.getCartEntities(userId);
         if (cartItems.isEmpty()) {
@@ -93,14 +95,17 @@ public class OrderService {
     }
 
     /**
-     * Create a pending order for Stripe checkout so the frontend can show it immediately.
+     * Create a pending order for Stripe checkout so the frontend can show it
+     * immediately.
      */
     public OrderEntity createStripePendingOrder(String authorizationHeader, String stripeSessionOrderId, BigDecimal total, String currency, String deliveryType, String deliveryAddress, BigDecimal deliveryDistanceKm, BigDecimal deliveryFee) {
         JwtService.JwtPrincipal principal = jwtService.requirePrincipal(authorizationHeader);
         Long userId = principal.userId();
-        if (userId == null) throw new IllegalArgumentException("Invalid token: missing user id");
+        if (userId == null) {
+            throw new IllegalArgumentException("Invalid token: missing user id");
+        }
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         OrderEntity order = new OrderEntity();
         order.setOrderNumber(generateOrderNumber());
@@ -121,7 +126,9 @@ public class OrderService {
     public CaptureResult capturePaypalOrder(String authorizationHeader, String paypalOrderId) {
         JwtService.JwtPrincipal principal = jwtService.requirePrincipal(authorizationHeader);
         Long userId = principal.userId();
-        if (userId == null) throw new IllegalArgumentException("Invalid token: missing user id");
+        if (userId == null) {
+            throw new IllegalArgumentException("Invalid token: missing user id");
+        }
         OrderEntity order = orderRepository.findByPaypalOrderId(paypalOrderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
@@ -179,7 +186,7 @@ public class OrderService {
 
         order.setPaymentStatus(OrderEntity.PaymentStatus.paid);
         order.setProcessingStatus(OrderEntity.ProcessingStatus.new_order);
-    order.setPaypalCaptureId(captureId);
+        order.setPaypalCaptureId(captureId);
         orderRepository.save(order);
 
         cartService.clearCart(userId);
@@ -187,7 +194,9 @@ public class OrderService {
     }
 
     /**
-     * Capture a Stripe payment: create order items from cart and mark order as paid
+     * Capture a Stripe payment: create order items from cart and mark order as
+     * paid
+     *
      * @param authorizationHeader JWT token
      * @param stripeSessionId Stripe session ID
      * @param deliveryType "collect" or "deliver"
@@ -203,30 +212,32 @@ public class OrderService {
             String deliveryAddress,
             BigDecimal deliveryDistanceKm,
             BigDecimal deliveryFee) {
-        
+
         logger.info("captureStripePayment called with sessionId: {}", stripeSessionId);
-        
+
         JwtService.JwtPrincipal principal = jwtService.requirePrincipal(authorizationHeader);
         Long userId = principal.userId();
-        if (userId == null) throw new IllegalArgumentException("Invalid token: missing user id");
+        if (userId == null) {
+            throw new IllegalArgumentException("Invalid token: missing user id");
+        }
         logger.info("Processing Stripe payment for user: {}", userId);
 
         // Find order by stripe session ID prefix
         OrderEntity order = orderRepository.findByPaypalOrderId("STRIPE-" + stripeSessionId)
                 .orElseGet(() -> {
                     // If not found, check cart and create a new order
-                        User user = userRepository.findById(userId)
+                    User user = userRepository.findById(userId)
                             .orElseThrow(() -> new IllegalArgumentException("User not found"));
-                        List<CartItemEntity> cartItems = cartService.getCartEntities(userId);
+                    List<CartItemEntity> cartItems = cartService.getCartEntities(userId);
                     if (cartItems.isEmpty()) {
                         throw new IllegalArgumentException("Cart is empty");
                     }
-                    
+
                     BigDecimal total = calculateTotal(cartItems);
                     if (deliveryFee != null && deliveryFee.compareTo(BigDecimal.ZERO) > 0) {
                         total = total.add(deliveryFee);
                     }
-                    
+
                     OrderEntity newOrder = new OrderEntity();
                     newOrder.setOrderNumber(generateOrderNumber());
                     newOrder.setUser(user);
@@ -241,6 +252,8 @@ public class OrderService {
                     return newOrder;
                 });
 
+        order = orderRepository.saveAndFlush(order);
+
         if (order.getPaymentStatus() == OrderEntity.PaymentStatus.paid) {
             logger.warn("Order {} already processed", order.getId());
             return new CaptureResult("Order already processed", order.getId());
@@ -248,40 +261,40 @@ public class OrderService {
 
         List<CartItemEntity> cartItems = cartService.getCartEntities(userId);
         if (cartItems.isEmpty()) {
-            throw new IllegalArgumentException("Cart is empty");
-        }
-
-        // Create order items from cart
-        for (CartItemEntity cartItem : cartItems) {
-            Long productId = cartItem.getProduct().getId();
-            if (productId == null) {
-                throw new IllegalArgumentException("Product id is missing");
+            logger.warn("Cart is empty during Stripe confirmation for order {}; finalizing payment without item reconstruction", order.getId());
+        } else {
+            // Create order items from cart when the cart snapshot is still available
+            for (CartItemEntity cartItem : cartItems) {
+                Long productId = cartItem.getProduct().getId();
+                if (productId == null) {
+                    throw new IllegalArgumentException("Product id is missing");
+                }
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                if (product.getStock() < cartItem.getQuantity()) {
+                    throw new IllegalArgumentException("Insufficient stock for " + product.getName());
+                }
             }
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-            if (product.getStock() < cartItem.getQuantity()) {
-                throw new IllegalArgumentException("Insufficient stock for " + product.getName());
-            }
-        }
 
-        for (CartItemEntity cartItem : cartItems) {
-            Long productId = cartItem.getProduct().getId();
-            if (productId == null) {
-                throw new IllegalArgumentException("Product id is missing");
-            }
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found"));
-            product.setStock(product.getStock() - cartItem.getQuantity());
-            productRepository.save(product);
+            for (CartItemEntity cartItem : cartItems) {
+                Long productId = cartItem.getProduct().getId();
+                if (productId == null) {
+                    throw new IllegalArgumentException("Product id is missing");
+                }
+                Product product = productRepository.findById(productId)
+                        .orElseThrow(() -> new IllegalArgumentException("Product not found"));
+                product.setStock(product.getStock() - cartItem.getQuantity());
+                productRepository.save(product);
 
-            OrderItemEntity orderItem = new OrderItemEntity();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setProductName(product.getName());
-            orderItem.setUnitPrice(product.getPrice());
-            orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
-            orderItemRepository.save(orderItem);
+                OrderItemEntity orderItem = new OrderItemEntity();
+                orderItem.setOrder(order);
+                orderItem.setProduct(product);
+                orderItem.setProductName(product.getName());
+                orderItem.setUnitPrice(product.getPrice());
+                orderItem.setQuantity(cartItem.getQuantity());
+                orderItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+                orderItemRepository.save(orderItem);
+            }
         }
 
         order.setPaymentStatus(OrderEntity.PaymentStatus.paid);
@@ -291,12 +304,12 @@ public class OrderService {
 
         cartService.clearCart(userId);
         logger.info("Cart cleared for user: {}", userId);
-        
+
         // Record initial location history entry
-        recordLocationHistory(order, "Stripe Payment", OrderEntity.ProcessingStatus.new_order.getDbValue(), 
-            "Order placed via Stripe. Delivery: " + deliveryType + 
-            (deliveryAddress != null ? " to " + deliveryAddress : ""));
-        
+        recordLocationHistory(order, "Stripe Payment", OrderEntity.ProcessingStatus.new_order.getDbValue(),
+                "Order placed via Stripe. Delivery: " + deliveryType
+                + (deliveryAddress != null ? " to " + deliveryAddress : ""));
+
         logger.info("Successfully captured Stripe payment and created order: {}", order.getId());
         return new CaptureResult("Stripe payment captured and order created successfully", order.getId());
     }
@@ -304,25 +317,27 @@ public class OrderService {
     public List<OrderSummaryView> getMyOrders(String authorizationHeader) {
         JwtService.JwtPrincipal principal = jwtService.requirePrincipal(authorizationHeader);
         Long userId2 = principal.userId();
-        if (userId2 == null) throw new IllegalArgumentException("Invalid token: missing user id");
+        if (userId2 == null) {
+            throw new IllegalArgumentException("Invalid token: missing user id");
+        }
         logger.info("getMyOrders called for user: {}", userId2);
-        
+
         List<OrderSummaryView> orders = orderRepository.findByUserOrderByCreatedAtDesc(userRepository.getReferenceById(userId2))
                 .stream()
                 .map(order -> new OrderSummaryView(
-                        order.getId(),
-                        order.getOrderNumber(),
-                        order.getTotal(),
-                        order.getCurrency(),
-                        order.getPaymentStatus().name(),
-                        order.getProcessingStatus().getDbValue(),
+                order.getId(),
+                order.getOrderNumber(),
+                order.getTotal(),
+                order.getCurrency(),
+                order.getPaymentStatus().name(),
+                order.getProcessingStatus().getDbValue(),
                 order.getLocationNote(),
                 getOrderItems(order.getId()),
                 getLocationHistory(order.getId()),
-                        order.getCreatedAt() == null ? Instant.now().toString() : order.getCreatedAt().toString()
-                ))
+                order.getCreatedAt() == null ? Instant.now().toString() : order.getCreatedAt().toString()
+        ))
                 .toList();
-        
+
         logger.info("Found {} orders for user: {}", orders.size(), userId2);
         return orders;
     }
@@ -331,24 +346,24 @@ public class OrderService {
         jwtService.requireAdmin(authorizationHeader);
         return orderRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(order -> new AdminOrderView(
-                        order.getId(),
-                        order.getOrderNumber(),
-                        order.getTotal(),
-                        order.getCurrency(),
-                        order.getPaymentStatus().name(),
-                        order.getProcessingStatus().getDbValue(),
-                    order.getLocationNote(),
-                    getOrderItems(order.getId()),
-                    getLocationHistory(order.getId()),
-                        order.getCreatedAt() == null ? Instant.now().toString() : order.getCreatedAt().toString(),
-                        order.getUser().getName(),
-                        order.getUser().getEmail()
-                ))
+                order.getId(),
+                order.getOrderNumber(),
+                order.getTotal(),
+                order.getCurrency(),
+                order.getPaymentStatus().name(),
+                order.getProcessingStatus().getDbValue(),
+                order.getLocationNote(),
+                getOrderItems(order.getId()),
+                getLocationHistory(order.getId()),
+                order.getCreatedAt() == null ? Instant.now().toString() : order.getCreatedAt().toString(),
+                order.getUser().getName(),
+                order.getUser().getEmail()
+        ))
                 .toList();
     }
 
-            public void updateProcessingStatus(String authorizationHeader, Long orderId, String processingStatus, String locationNote) {
-            JwtService.JwtPrincipal admin = jwtService.requireAdmin(authorizationHeader);
+    public void updateProcessingStatus(String authorizationHeader, Long orderId, String processingStatus, String locationNote) {
+        JwtService.JwtPrincipal admin = jwtService.requireAdmin(authorizationHeader);
         Long safeOrderId = orderId;
         if (safeOrderId == null) {
             throw new IllegalArgumentException("Order id is missing");
@@ -391,25 +406,25 @@ public class OrderService {
     private List<OrderLocationHistoryView> getLocationHistory(Long orderId) {
         return orderLocationHistoryRepository.findByOrderIdOrderByCreatedAtDesc(orderId).stream()
                 .map(entry -> new OrderLocationHistoryView(
-                        entry.getAdminName(),
-                        entry.getProcessingStatus(),
-                        entry.getLocationNote(),
-                        entry.getCreatedAt() == null ? Instant.now().toString() : entry.getCreatedAt().toString()
-                ))
+                entry.getAdminName(),
+                entry.getProcessingStatus(),
+                entry.getLocationNote(),
+                entry.getCreatedAt() == null ? Instant.now().toString() : entry.getCreatedAt().toString()
+        ))
                 .toList();
     }
 
-            private List<AdminOrderItemView> getOrderItems(Long orderId) {
-            return orderItemRepository.findByOrderId(orderId).stream()
+    private List<AdminOrderItemView> getOrderItems(Long orderId) {
+        return orderItemRepository.findByOrderId(orderId).stream()
                 .map(item -> new AdminOrderItemView(
-                    item.getId(),
-                    item.getProductName(),
-                    item.getQuantity(),
-                    item.getUnitPrice(),
-                    item.getSubtotal()
-                ))
+                item.getId(),
+                item.getProductName(),
+                item.getQuantity(),
+                item.getUnitPrice(),
+                item.getSubtotal()
+        ))
                 .toList();
-            }
+    }
 
     private String normalizeLocationNote(String value) {
         if (value == null) {
@@ -443,5 +458,6 @@ public class OrderService {
     }
 
     public record CaptureResult(String message, Long orderId) {
+
     }
 }

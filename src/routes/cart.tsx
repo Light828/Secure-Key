@@ -98,6 +98,23 @@ function CartPage() {
     items: Array.isArray(order.items) ? order.items : [],
     location_history: Array.isArray(order.location_history) ? order.location_history : [],
   });
+  const resolveOrderPaymentStatus = (order: Order): Order["payment_status"] => {
+    if (paymentSuccess?.orderId !== order.id) {
+      return order.payment_status;
+    }
+
+    const confirmedStatus = paymentSuccess.paymentStatus.toLowerCase();
+    if (confirmedStatus === "paid" || confirmedStatus === "failed") {
+      return confirmedStatus;
+    }
+
+    return order.payment_status;
+  };
+
+  const applyLatestPaymentState = (order: Order): Order => ({
+    ...order,
+    payment_status: resolveOrderPaymentStatus(order),
+  });
 
   const loadData = async (): Promise<Order[]> => {
     if (!token) return [];
@@ -137,6 +154,28 @@ function CartPage() {
     loadData()
       .catch((error) => setMessage((error as Error).message || "Failed to load cart"))
       .finally(() => setLoading(false));
+  }, [isAuthenticated, token]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      return;
+    }
+
+    const refreshOrders = () => {
+      loadOrders().catch((error) => {
+        console.error("Failed to refresh orders:", error);
+      });
+    };
+
+    const interval = window.setInterval(refreshOrders, 15000);
+    const handleFocus = () => refreshOrders();
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [isAuthenticated, token]);
 
   useEffect(() => {
@@ -242,12 +281,21 @@ function CartPage() {
     const timer = setTimeout(() => {
       const matchingOrder = orders.find(o => o.id === paymentSuccess.orderId);
       if (matchingOrder) {
-        setSelectedOrder(normalizeOrder(matchingOrder));
+        setSelectedOrder(normalizeOrder(applyLatestPaymentState(matchingOrder)));
       }
     }, 800);
 
     return () => clearTimeout(timer);
   }, [paymentSuccess, orders]);
+
+  useEffect(() => {
+    if (!selectedOrder) return;
+
+    const matchingOrder = orders.find((order) => order.id === selectedOrder.id);
+    if (matchingOrder) {
+      setSelectedOrder(normalizeOrder(applyLatestPaymentState(matchingOrder)));
+    }
+  }, [orders, selectedOrder?.id]);
 
   const handleQuantity = async (itemId: number, quantity: number) => {
     if (!token) return;
@@ -307,7 +355,7 @@ function CartPage() {
       const response = await createCheckoutSession(token ?? null, {
         amountCents,
         description: `SecureKey Locksmith order (${deliveryType}) ${user?.name || "client"}`,
-        successUrl: `${window.location.origin}/cart?status=success#my-orders`,
+        successUrl: `${window.location.origin}/cart?status=success&session_id={CHECKOUT_SESSION_ID}#my-orders`,
         cancelUrl: `${window.location.origin}/cart?status=cancel`,
       });
 
@@ -444,13 +492,20 @@ function CartPage() {
                 )}
                 {orders.slice(0, 4).map((order) => {
                   const isLatestPayment = paymentSuccess?.orderId === order.id;
+                  const displayOrder = applyLatestPaymentState(order);
+                  const paymentLabel = formatPaymentStatus(displayOrder.payment_status);
+                  const paymentBadgeClass = displayOrder.payment_status === 'paid'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : displayOrder.payment_status === 'failed'
+                      ? 'bg-red-500/20 text-red-400'
+                      : 'bg-yellow-500/20 text-yellow-400';
                   const itemSummary = order.items.length > 0
                     ? order.items.map((item) => `${item.quantity}x ${item.productName}`).join(" · ")
                     : "";
                   return (
                     <button
                       key={order.id}
-                      onClick={() => setSelectedOrder(normalizeOrder(order))}
+                      onClick={() => setSelectedOrder(normalizeOrder(applyLatestPaymentState(order)))}
                       className={`w-full text-left p-2 rounded-md transition-colors ${isLatestPayment
                         ? 'bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/20'
                         : 'bg-muted/30 hover:bg-muted/50'
@@ -461,8 +516,8 @@ function CartPage() {
                           {order.orderNumber || `#${order.id}`}
                           {isLatestPayment && <span className="text-[10px] text-emerald-400">✓ NEW</span>}
                         </span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${order.payment_status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                          {order.payment_status}
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${paymentBadgeClass}`}>
+                          {paymentLabel}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -475,7 +530,7 @@ function CartPage() {
                         </div>
                       )}
                       <div className="mt-1 text-[10px] text-muted-foreground">
-                        {formatProcessingStatus(order.processing_status)}
+                        {formatProcessingStatus(displayOrder.processing_status)}
                       </div>
                     </button>
                   );
@@ -735,7 +790,7 @@ function CartPage() {
                         <div className="mt-3 space-y-2 rounded-lg border border-emerald-500/20 bg-card p-3 text-xs text-foreground">
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Order Status:</span>
-                            <span className="font-semibold text-emerald-400">{paymentSuccess.paymentStatus}</span>
+                            <span className="font-semibold text-emerald-400">{formatPaymentStatus(paymentSuccess.paymentStatus)}</span>
                           </div>
                         </div>
                         <p className="mt-3 text-xs text-muted-foreground">
@@ -748,34 +803,35 @@ function CartPage() {
                       {(() => {
                         const matchingOrder = orders.find(o => o.id === paymentSuccess.orderId);
                         if (matchingOrder) {
+                          const displayOrder = applyLatestPaymentState(matchingOrder);
                           return (
                             <>
                               <div className="space-y-2 text-sm mb-4">
                                 <div className="flex justify-between text-muted-foreground">
                                   <span>Order ID:</span>
-                                  <span className="font-semibold text-foreground">#{matchingOrder.id}</span>
+                                  <span className="font-semibold text-foreground">#{displayOrder.id}</span>
                                 </div>
                                 <div className="flex justify-between text-muted-foreground">
                                   <span>Amount Paid:</span>
-                                  <span className="font-semibold text-primary">R{matchingOrder.total.toFixed(2)}</span>
+                                  <span className="font-semibold text-primary">R{displayOrder.total.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-muted-foreground">
                                   <span>Payment Status:</span>
-                                  <span className="font-semibold text-emerald-400">{formatPaymentStatus(matchingOrder.payment_status)}</span>
+                                  <span className="font-semibold text-emerald-400">{formatPaymentStatus(displayOrder.payment_status)}</span>
                                 </div>
                                 <div className="flex justify-between text-muted-foreground">
                                   <span>Processing:</span>
-                                  <span className="font-semibold text-foreground">{formatProcessingStatus(matchingOrder.processing_status)}</span>
+                                  <span className="font-semibold text-foreground">{formatProcessingStatus(displayOrder.processing_status)}</span>
                                 </div>
                                 <div className="flex justify-between text-muted-foreground pt-2 border-t border-border/50">
                                   <span>Order Date:</span>
-                                  <span className="font-semibold text-foreground text-xs">{formatOrderDate(matchingOrder.created_at)}</span>
+                                  <span className="font-semibold text-foreground text-xs">{formatOrderDate(displayOrder.created_at)}</span>
                                 </div>
                               </div>
                               <div className="mt-4 pt-4 border-t border-border/50">
                                 <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tracking Timeline</h5>
                                 <div className="flex flex-wrap gap-2">
-                                  {getOrderTimeline(matchingOrder.payment_status, matchingOrder.processing_status).map((step) => (
+                                  {getOrderTimeline(displayOrder.payment_status, displayOrder.processing_status).map((step) => (
                                     <span key={step.key} className={`rounded-full border px-2 py-1 text-xs font-semibold ${step.state === 'done' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : step.state === 'current' ? 'bg-primary/10 border-primary/40 text-primary' : 'bg-muted/50 border-border text-muted-foreground'}`}>
                                       {step.label}
                                     </span>
@@ -795,10 +851,6 @@ function CartPage() {
                               <div className="flex justify-between">
                                 <span>Amount Paid:</span>
                                 <span className="font-semibold text-primary">R{paymentSuccess.amount.toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Payment Status:</span>
-                                <span className="font-semibold text-emerald-400">✓ Paid</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Date:</span>
@@ -827,7 +879,7 @@ function CartPage() {
                         onClick={() => {
                           const matchingOrder = orders.find(o => o.id === paymentSuccess.orderId);
                           if (matchingOrder) {
-                            setSelectedOrder(normalizeOrder(matchingOrder));
+                            setSelectedOrder(normalizeOrder(applyLatestPaymentState(matchingOrder)));
                           }
                         }}
                         className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"

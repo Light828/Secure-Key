@@ -1,16 +1,9 @@
 package com.locksmith.platform.controller;
 
-import com.locksmith.platform.dto.OrderSummaryView;
-import com.locksmith.platform.service.PayPalService;
-import com.locksmith.platform.service.OrderService;
-import com.locksmith.platform.service.StripeService;
-import com.stripe.exception.StripeException;
-import com.stripe.model.checkout.Session;
-import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import org.springframework.web.bind.annotation.RequestParam;
+
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +11,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.locksmith.platform.dto.OrderSummaryView;
+import com.locksmith.platform.service.OrderService;
+import com.locksmith.platform.service.PayPalService;
+import com.locksmith.platform.service.StripeService;
+import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
+
+import jakarta.validation.constraints.NotBlank;
 
 @RestController
 @RequestMapping("/orders")
@@ -54,13 +57,18 @@ public class OrderController {
         try {
             PayPalService.PayPalOrder order = orderService.createPaypalOrder(authorization);
             long amountInCents = order.amount().longValue();
-            String sessionId = stripeService.createCheckoutSession(
-                    "order-" + System.nanoTime(),
+            String orderId = "order-" + System.nanoTime();
+            StripeService.CheckoutSessionResult result = stripeService.createCheckoutSession(
+                    orderId,
                     amountInCents,
-                    order.currency()
+                    order.currency(),
+                    "http://localhost:8081/cart",
+                    "http://localhost:8081/cart",
+                    "SecureKey Order: " + orderId
             );
             return Map.of(
-                    "sessionId", sessionId,
+                    "sessionId", result.sessionId(),
+                    "url", result.url(),
                     "amount", order.amount(),
                     "currency", order.currency()
             );
@@ -76,28 +84,29 @@ public class OrderController {
             if (session == null) {
                 throw new IllegalArgumentException("Stripe session not found");
             }
-            
+
             // Parse delivery info from request
             String deliveryType = request.deliveryType() != null ? request.deliveryType() : "collect";
             String deliveryAddress = request.deliveryAddress();
-            BigDecimal deliveryDistanceKm = request.deliveryDistanceKm() != null ? 
-                new java.math.BigDecimal(request.deliveryDistanceKm()) : null;
-            BigDecimal deliveryFee = request.deliveryFee() != null ? 
-                new java.math.BigDecimal(request.deliveryFee()) : null;
-            
+            BigDecimal deliveryDistanceKm = request.deliveryDistanceKm() != null
+                    ? new java.math.BigDecimal(request.deliveryDistanceKm()) : null;
+            BigDecimal deliveryFee = request.deliveryFee() != null
+                    ? new java.math.BigDecimal(request.deliveryFee()) : null;
+
             OrderService.CaptureResult result = orderService.captureStripePayment(
-                authorization,
-                request.sessionId(),
-                deliveryType,
-                deliveryAddress,
-                deliveryDistanceKm,
-                deliveryFee
+                    authorization,
+                    request.sessionId(),
+                    deliveryType,
+                    deliveryAddress,
+                    deliveryDistanceKm,
+                    deliveryFee
             );
             return Map.of(
                     "message", result.message(),
                     "orderId", result.orderId(),
                     "sessionId", request.sessionId(),
-                    "paymentStatus", String.valueOf(session.getPaymentStatus())
+                    "paymentStatus", "paid",
+                    "stripePaymentStatus", String.valueOf(session.getPaymentStatus())
             );
         } catch (Exception ex) {
             throw new RuntimeException("Failed to confirm payment: " + ex.getMessage());
@@ -105,12 +114,14 @@ public class OrderController {
     }
 
     public record StripePaymentRequest(
-        String sessionId,
-        String deliveryType,
-        String deliveryAddress,
-        Double deliveryDistanceKm,
-        Double deliveryFee
-    ) {}
+            String sessionId,
+            String deliveryType,
+            String deliveryAddress,
+            Double deliveryDistanceKm,
+            Double deliveryFee
+            ) {
+
+    }
 
     @GetMapping("/my-orders")
     public Map<String, List<OrderSummaryView>> getMyOrders(@RequestHeader("Authorization") String authorization) {
@@ -524,5 +535,6 @@ public class OrderController {
     }
 
     public record CaptureRequest(@NotBlank String paypalOrderId) {
+
     }
 }

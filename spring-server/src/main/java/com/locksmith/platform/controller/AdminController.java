@@ -1,18 +1,17 @@
 package com.locksmith.platform.controller;
 
-import com.locksmith.platform.model.Product;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,12 +23,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.bind.annotation.RestController;
+
+import com.locksmith.platform.model.Product;
+import com.locksmith.platform.model.User;
 import com.locksmith.platform.repository.ProductRepository;
+import com.locksmith.platform.repository.UserRepository;
 import com.locksmith.platform.service.JwtService;
 import com.locksmith.platform.service.OrderService;
+
+import jakarta.validation.constraints.NotBlank;
 
 @RestController
 @RequestMapping("/admin")
@@ -39,11 +44,13 @@ public class AdminController {
     private static final Path UPLOADS_DIR = Paths.get("uploads").toAbsolutePath().normalize();
 
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
     private final OrderService orderService;
     private final JwtService jwtService;
 
-    public AdminController(ProductRepository productRepository, OrderService orderService, JwtService jwtService) {
+    public AdminController(ProductRepository productRepository, UserRepository userRepository, OrderService orderService, JwtService jwtService) {
         this.productRepository = productRepository;
+        this.userRepository = userRepository;
         this.orderService = orderService;
         this.jwtService = jwtService;
     }
@@ -114,6 +121,31 @@ public class AdminController {
         return Map.of("orders", orderService.getAdminOrders(authorization));
     }
 
+    @GetMapping("/users")
+    public Map<String, List<Map<String, Object>>> getUsers(@RequestHeader("Authorization") String authorization) {
+        jwtService.requireAdmin(authorization);
+        List<Map<String, Object>> users = userRepository.findAll().stream()
+                .map(this::toUserMap)
+                .collect(Collectors.toList());
+        return Map.of("users", users);
+    }
+
+    @PatchMapping("/users/{id}")
+    public Map<String, String> updateUser(@RequestHeader("Authorization") String authorization, @PathVariable Long id, @RequestBody UserUpdateRequest request) {
+        jwtService.requireAdmin(authorization);
+        User user = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (request.name() != null && !request.name().isBlank()) {
+            user.setName(request.name().trim());
+        }
+        if (request.role() != null) {
+            user.setRole(request.role());
+        }
+
+        userRepository.save(user);
+        return Map.of("message", "User updated");
+    }
+
     @PatchMapping("/orders/{id}/status")
     public Map<String, String> updateOrderStatus(@RequestHeader("Authorization") String authorization, @PathVariable Long id, @RequestBody OrderStatusRequest request) {
         orderService.updateProcessingStatus(authorization, id, request.processingStatus(), request.locationNote());
@@ -141,12 +173,27 @@ public class AdminController {
         return item;
     }
 
+    private Map<String, Object> toUserMap(User user) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", user.getId());
+        item.put("name", user.getName());
+        item.put("email", user.getEmail());
+        item.put("role", user.getRole() == null ? User.Role.client.name() : user.getRole().name());
+        item.put("verified", user.isVerified());
+        item.put("createdAt", user.getCreatedAt() == null ? null : user.getCreatedAt().toString());
+        item.put("enabled", true);
+        return item;
+    }
+
     public record ProductRequest(@NotBlank String name, String description, BigDecimal price, Integer stock, String imageUrl, boolean isActive) {
+
     }
 
     public record OrderStatusRequest(@NotBlank String processingStatus, String locationNote) {
+
     }
 
     public record UserUpdateRequest(String name, com.locksmith.platform.model.User.Role role, Boolean disabled) {
+
     }
 }

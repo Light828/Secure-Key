@@ -1,5 +1,7 @@
 package com.locksmith.platform.entity;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
@@ -10,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.Instant;
 
 @Entity
 @Table(name = "order_location_history")
@@ -20,11 +21,12 @@ public class OrderLocationHistoryEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-        @Column(name = "order_id", nullable = false, columnDefinition = "BIGINT UNSIGNED")
-        private Long orderId;
+    @Column(name = "order_id", nullable = false, columnDefinition = "BIGINT UNSIGNED")
+    @SuppressWarnings("unused")
+    private Long orderId;
 
     @ManyToOne(optional = false)
-        @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false,
+    @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false,
             foreignKey = @ForeignKey(name = "FKjxisdtu3t0y0ar7xxodn1ky37"))
     private OrderEntity order;
 

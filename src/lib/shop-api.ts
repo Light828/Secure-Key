@@ -18,6 +18,8 @@ export interface RegisterPayload {
   phone?: string;
   addressLine?: string;
   city?: string;
+  postalCode?: string;
+  province?: string;
 }
 
 export interface Product {
@@ -94,12 +96,70 @@ function normalizeOrderItems(items: RawOrderItem[] | null | undefined): OrderIte
   }));
 }
 
-function normalizeOrder<T extends { location_history?: OrderLocationHistoryItem[] | null; items?: RawOrderItem[] | null; orderNumber?: string; order_number?: string }>(order: T) {
+type RawOrderLocationHistoryItem = Partial<OrderLocationHistoryItem> & {
+  adminName?: string;
+  processingStatus?: string;
+  locationNote?: string | null;
+  createdAt?: string;
+};
+
+function normalizeOrderLocationHistory(items: RawOrderLocationHistoryItem[] | null | undefined): OrderLocationHistoryItem[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.map((item) => ({
+    admin_name: item.admin_name ?? item.adminName ?? "Admin",
+    processing_status: (item.processing_status ?? item.processingStatus ?? "awaiting_payment") as OrderLocationHistoryItem["processing_status"],
+    location_note: item.location_note ?? item.locationNote ?? null,
+    created_at: item.created_at ?? item.createdAt ?? new Date().toISOString(),
+  }));
+}
+
+function normalizeOrder<T extends {
+  location_history?: RawOrderLocationHistoryItem[] | null;
+  locationHistory?: RawOrderLocationHistoryItem[] | null;
+  items?: RawOrderItem[] | null;
+  orderNumber?: string;
+  order_number?: string;
+  customerName?: string;
+  customer_name?: string;
+  customerEmail?: string;
+  customer_email?: string;
+  paymentStatus?: Order["payment_status"];
+  payment_status?: Order["payment_status"];
+  processingStatus?: Order["processing_status"];
+  processing_status?: Order["processing_status"];
+  locationNote?: string | null;
+  location_note?: string | null;
+  createdAt?: string;
+  created_at?: string;
+}>(order: T) {
   return {
     ...order,
     orderNumber: order.orderNumber ?? order.order_number ?? "",
+    customerName: order.customerName ?? order.customer_name ?? "",
+    customerEmail: order.customerEmail ?? order.customer_email ?? "",
+    payment_status: order.payment_status ?? order.paymentStatus ?? "pending",
+    processing_status: order.processing_status ?? order.processingStatus ?? "awaiting_payment",
+    location_note: order.location_note ?? order.locationNote ?? null,
+    created_at: order.created_at ?? order.createdAt ?? new Date().toISOString(),
     items: normalizeOrderItems(order.items),
-    location_history: Array.isArray(order.location_history) ? order.location_history : [],
+    location_history: normalizeOrderLocationHistory(order.location_history ?? order.locationHistory),
+  } as Order;
+}
+
+type AdminOrder = Order & {
+  customerName: string;
+  customerEmail: string;
+};
+
+function normalizeAdminOrder<T extends Parameters<typeof normalizeOrder>[0]>(order: T) {
+  const normalized = normalizeOrder(order) as AdminOrder;
+  return {
+    ...normalized,
+    customerName: (order as { customerName?: string; customer_name?: string }).customerName ?? (order as { customer_name?: string }).customer_name ?? "",
+    customerEmail: (order as { customerEmail?: string; customer_email?: string }).customerEmail ?? (order as { customer_email?: string }).customer_email ?? "",
   };
 }
 
@@ -318,6 +378,10 @@ export async function getAdminOrders(token: string) {
       orderNumber: string;
       total: number;
       currency: string;
+      customerName?: string;
+      customerEmail?: string;
+      customer_name?: string;
+      customer_email?: string;
       payment_status: "pending" | "paid" | "failed";
       processing_status: "awaiting_payment" | "new" | "processing" | "completed" | "cancelled";
       location_note: string | null;
@@ -330,7 +394,7 @@ export async function getAdminOrders(token: string) {
   }>("/api/admin/orders", { token });
   return {
     ...response,
-    orders: response.orders.map(normalizeOrder),
+    orders: response.orders.map(normalizeAdminOrder),
   };
 }
 

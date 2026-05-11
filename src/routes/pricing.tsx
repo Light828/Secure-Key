@@ -187,7 +187,7 @@ function PricingPage() {
                   const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/payments/create-checkout-session`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amountCents: 1000, description: 'Test payment', successUrl: window.location.href, cancelUrl: window.location.href }),
+                    body: JSON.stringify({ amountCents: 1000, description: 'Test payment', successUrl: `${window.location.origin}/cart?status=success&session_id={CHECKOUT_SESSION_ID}`, cancelUrl: window.location.href }),
                   });
                   if (!resp.ok) throw new Error('Server error');
                   const json = await resp.json();
@@ -197,7 +197,7 @@ function PricingPage() {
                     const mock = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/payments/create-mock-session`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ amountCents: 1000, description: 'Mock payment', successUrl: window.location.href, cancelUrl: window.location.href }),
+                      body: JSON.stringify({ amountCents: 1000, description: 'Mock payment', successUrl: `${window.location.origin}/cart?status=success&session_id={CHECKOUT_SESSION_ID}`, cancelUrl: window.location.href }),
                     });
                     const j = await mock.json();
                     if (j.url) window.location.href = j.url;
@@ -209,7 +209,7 @@ function PricingPage() {
                     const mock = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/payments/create-mock-session`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ amountCents: 1000, description: 'Mock payment', successUrl: window.location.href, cancelUrl: window.location.href }),
+                      body: JSON.stringify({ amountCents: 1000, description: 'Mock payment', successUrl: `${window.location.origin}/cart?status=success&session_id={CHECKOUT_SESSION_ID}`, cancelUrl: window.location.href }),
                     });
                     const j = await mock.json();
                     if (j.url) window.location.href = j.url;

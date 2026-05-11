@@ -1,7 +1,8 @@
 package com.locksmith.platform.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,12 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class DistanceCalculationService {
+
     private static final Logger logger = LoggerFactory.getLogger(DistanceCalculationService.class);
     private static final String GOOGLE_MAPS_DISTANCE_MATRIX_URL = "https://maps.googleapis.com/maps/api/distancematrix/json";
 
@@ -36,10 +37,12 @@ public class DistanceCalculationService {
     }
 
     /**
-     * Calculate distance in kilometers from store to delivery address using Google Maps API
-     * Falls back to mock distance if API key is not configured or API call fails
+     * Calculate distance in kilometers from store to delivery address using
+     * Google Maps API Falls back to mock distance if API key is not configured
+     * or API call fails
      *
-     * @param address Full delivery address (street, city, province, postal code)
+     * @param address Full delivery address (street, city, province, postal
+     * code)
      * @return distance in kilometers
      */
     public double calculateDistance(String address) {
@@ -79,7 +82,7 @@ public class DistanceCalculationService {
                     if (elements.isArray() && elements.size() > 0) {
                         JsonNode element = elements.get(0);
                         String elementStatus = element.path("status").asText();
-                        
+
                         if ("OK".equals(elementStatus)) {
                             long distanceMeters = element.path("distance").path("value").asLong();
                             double distanceKm = distanceMeters / 1000.0;
